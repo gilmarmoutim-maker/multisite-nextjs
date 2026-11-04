@@ -11,6 +11,41 @@ export function normalizeHost(host: string | null): string | null {
   return host.split(":")[0].toLowerCase();
 }
 
+/**
+ * Host público da requisição. Com apex em registo A (ex.: 76.76.21.21 na Vercel),
+ * o DNS entrega o IP, mas o roteamento usa sempre o cabeçalho Host / X-Forwarded-Host.
+ */
+export function resolveRequestHost(
+  hostHeader: string | null,
+  forwardedHostHeader: string | null,
+): string | null {
+  const direct = normalizeHost(hostHeader);
+  if (direct) return direct;
+  if (!forwardedHostHeader) return null;
+  const first = forwardedHostHeader.split(",")[0]?.trim() ?? "";
+  return normalizeHost(first);
+}
+
+export function resolveRequestProtocol(
+  forwardedProtoHeader: string | null,
+  fallbackProtocol: string,
+): "http" | "https" {
+  const raw =
+    forwardedProtoHeader?.split(",")[0]?.trim() ??
+    fallbackProtocol.replace(/:$/, "");
+  return raw === "http" ? "http" : "https";
+}
+
+/** URL canônica no apex (308 www → apex), preservando path, query e HTTPS na Vercel. */
+export function buildApexCanonicalUrl(
+  apex: string,
+  pathname: string,
+  search: string,
+  protocol: "http" | "https",
+): URL {
+  return new URL(`${pathname}${search}`, `${protocol}://${apex}`);
+}
+
 export function apexHostname(apex = PLATFORM_APEX_DOMAIN): string {
   return apex.toLowerCase();
 }

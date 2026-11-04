@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   apexHostname,
+  buildApexCanonicalUrl,
   extractSubdomainLabel,
   isApexHost,
   isVercelSystemHost,
   isWwwApexHost,
-  normalizeHost,
   PLATFORM_APEX_DOMAIN,
   PLATFORM_REDIRECT_WWW_TO_APEX,
+  resolveRequestHost,
+  resolveRequestProtocol,
 } from "@/lib/platform";
 
 export function middleware(request: NextRequest) {
-  const host = normalizeHost(request.headers.get("host"));
+  const host = resolveRequestHost(
+    request.headers.get("host"),
+    request.headers.get("x-forwarded-host"),
+  );
   if (!host) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   if (
     pathname.startsWith("/_next") ||
@@ -28,13 +33,17 @@ export function middleware(request: NextRequest) {
 
   const apex = apexHostname();
 
-  if (
-    PLATFORM_REDIRECT_WWW_TO_APEX &&
-    isWwwApexHost(host) &&
-    host !== apex
-  ) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.hostname = apex;
+  if (PLATFORM_REDIRECT_WWW_TO_APEX && isWwwApexHost(host)) {
+    const protocol = resolveRequestProtocol(
+      request.headers.get("x-forwarded-proto"),
+      request.nextUrl.protocol,
+    );
+    const redirectUrl = buildApexCanonicalUrl(
+      apex,
+      pathname,
+      search,
+      protocol,
+    );
     return NextResponse.redirect(redirectUrl, 308);
   }
 
