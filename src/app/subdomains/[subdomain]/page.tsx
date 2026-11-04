@@ -1,5 +1,7 @@
 import { loadSubdomainContent } from "@/lib/subdomain-content";
 
+export const instant = false;
+
 type SubdomainHomeProps = {
   params: Promise<{ subdomain: string }>;
 };

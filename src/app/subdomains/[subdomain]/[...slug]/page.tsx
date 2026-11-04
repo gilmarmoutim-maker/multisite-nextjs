@@ -1,6 +1,8 @@
 import { recomposeOriginalPath } from "@/lib/platform";
 import { loadSubdomainContent } from "@/lib/subdomain-content";
 
+export const instant = false;
+
 type SubdomainCatchAllProps = {
   params: Promise<{ subdomain: string; slug: string[] }>;
 };
