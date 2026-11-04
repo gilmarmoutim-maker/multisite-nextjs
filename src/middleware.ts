@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  apexHostname,
   extractSubdomainLabel,
   isApexHost,
+  isVercelSystemHost,
+  isWwwApexHost,
   normalizeHost,
   PLATFORM_APEX_DOMAIN,
+  PLATFORM_REDIRECT_WWW_TO_APEX,
 } from "@/lib/platform";
 
 export function middleware(request: NextRequest) {
@@ -22,7 +26,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const apex = apexHostname();
+
+  if (
+    PLATFORM_REDIRECT_WWW_TO_APEX &&
+    isWwwApexHost(host) &&
+    host !== apex
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.hostname = apex;
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   if (isApexHost(host)) {
+    const response = NextResponse.next();
+    response.headers.set("x-platform-host", host);
+    response.headers.set("x-platform-apex", PLATFORM_APEX_DOMAIN);
+    response.headers.set("x-platform-scope", "apex");
+    return response;
+  }
+
+  if (isVercelSystemHost(host)) {
     return NextResponse.next();
   }
 
@@ -41,6 +65,7 @@ export function middleware(request: NextRequest) {
   response.headers.set("x-platform-host", host);
   response.headers.set("x-platform-subdomain", subdomain);
   response.headers.set("x-platform-apex", PLATFORM_APEX_DOMAIN);
+  response.headers.set("x-platform-scope", "subdomain");
   return response;
 }
 

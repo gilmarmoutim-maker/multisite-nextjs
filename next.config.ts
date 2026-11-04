@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** Domínios customizados (apex + wildcard) são roteados pelo middleware via Host. */
   cacheComponents: true,
   partialPrefetching: true,
   outputFileTracingIncludes: {
