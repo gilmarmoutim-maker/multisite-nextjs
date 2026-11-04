@@ -22,25 +22,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Endereço IP do servidor Plesk/WordPress original
-  const PLESK_SERVER_IP = '177.104.179.81';
-
-  // Se for o domínio principal ou um subdomínio, faz o Proxy Reverso para o Plesk
-  if (isApexHost(host) || extractSubdomainLabel(host)) {
-    const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, `http://${PLESK_SERVER_IP}`);
-
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("host", host);
-    requestHeaders.set("x-forwarded-host", host);
-
-    return NextResponse.rewrite(targetUrl, {
-      request: {
-        headers: requestHeaders,
-      },
-    });
+  if (isApexHost(host)) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const subdomain = extractSubdomainLabel(host);
+  if (!subdomain) {
+    return NextResponse.next();
+  }
+
+  const rewriteUrl = request.nextUrl.clone();
+  rewriteUrl.pathname =
+    pathname === "/"
+      ? `/subdomains/${subdomain}`
+      : `/subdomains/${subdomain}${pathname}`;
+
+  const response = NextResponse.rewrite(rewriteUrl);
+  response.headers.set("x-platform-host", host);
+  response.headers.set("x-platform-subdomain", subdomain);
+  response.headers.set("x-platform-apex", PLATFORM_APEX_DOMAIN);
+  return response;
 }
 
 export const config = {

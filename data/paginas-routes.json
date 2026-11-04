@@ -1,0 +1,14 @@
+{
+  "bindings": [
+    {
+      "paginaId": 5794,
+      "host": "apex",
+      "path": "/"
+    },
+    {
+      "paginaId": 5810,
+      "host": "apex",
+      "path": "/caca-vazamento-em-lins-sp"
+    }
+  ]
+}
