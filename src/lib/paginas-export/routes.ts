@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
 import { normalizePublicPath, slugifyTitle } from "./slug";
+import { extractSubdomainLabel, normalizeHost } from "../platform";
 import type { PaginaExportRow } from "./types";
 import { loadPaginasExport } from "./load-paginas-export";
 
@@ -30,7 +31,7 @@ async function readBindingsFile(cwd: string): Promise<PaginaRouteBinding[]> {
     if (!Array.isArray(parsed.bindings)) return [];
     return parsed.bindings.map((b) => ({
       paginaId: b.paginaId,
-      host: b.host.trim().toLowerCase(),
+      host: normalizeHost(b.host.trim()) ?? "",
       path: normalizePublicPath(b.path),
     }));
   } catch {
@@ -73,7 +74,14 @@ export const loadPaginasRouteIndex = cache(
     const byHostAndPath = new Map<PaginaRouteKey, number>();
     for (const binding of bindings) {
       if (!byPaginaId.has(binding.paginaId)) continue;
-      byHostAndPath.set(routeKey(binding.host, binding.path), binding.paginaId);
+
+      const hostScopes = new Set([binding.host]);
+      const subdomain = extractSubdomainLabel(binding.host);
+      if (subdomain) hostScopes.add(subdomain);
+
+      for (const hostScope of hostScopes) {
+        byHostAndPath.set(routeKey(hostScope, binding.path), binding.paginaId);
+      }
     }
 
     return { byHostAndPath, byPaginaId };
